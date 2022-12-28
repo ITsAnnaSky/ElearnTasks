@@ -69,6 +69,7 @@ def read_file(file_name, prof):
     count = 0
     columns = ''
     files = {}
+    os.mkdir('data')
     for row in file_reader:
         if columns == '':
             columns = row
@@ -79,7 +80,8 @@ def read_file(file_name, prof):
             line = ','.join(str(i) for i in row) + '\n'
             files[year].write(line)
         else:
-            files[year] = open(year, 'w', encoding='utf-8')
+            path = 'data/'+ year + '.csv'
+            files[year] = open(path, 'w', encoding='utf-8')
             line = ','.join(str(i) for i in columns) + '\n'
             line2 = ','.join(str(i) for i in row) + '\n'
             files[year].write(line)
@@ -89,7 +91,7 @@ def read_file(file_name, prof):
     return vacancies
 
 
-file_name = '1.csv'
-prof = 'программист'
+file_name = input('Введите название файла:')
+prof = input('Введите название профессии:')
 vacancies = read_file(file_name, prof.replace('\n', ''))
 

@@ -1,0 +1,355 @@
+#from Vacancy import Vacancy
+from datetime import datetime
+#import var_dump as var_dump
+from re import sub, compile
+from csv import reader as read_csv
+from prettytable import PrettyTable
+import prettytable
+import os.path
+
+class Salary:
+    #класс для представления зарплаты
+    salary_from = ''
+    salary_to = ''
+    salary_gross = ''
+    salary_currency = ''
+
+    def __init__(self, dict_view):
+    # Инициализирует объект Salary, выполняет конвертацию для целочисленных полей.
+        self.salary_from = dict_view['salary_from']
+        self.salary_to = dict_view['salary_to']
+        self.salary_gross = dict_view['salary_gross']
+        self.salary_currency = dict_view['salary_currency']
+
+#from Salary import Salary
+class Vacancy:
+    #Класс для представления вакансий
+    name = ''
+    description = ''
+    key_skills = list()
+    experience_id = ''
+    premium = ''
+    employer_name = ''
+    salary = None
+    area_name = ''
+    published_at = ''
+    def __init__(self, dict_view):
+    #Инициализирует объект Salary, выполняет конвертацию для целочисленных полей.
+        self.name = dict_view['name']
+        self.description = dict_view['description']
+        self.key_skills = dict_view['key_skills']
+        self.experience_id = dict_view['experience_id']
+        self.premium = dict_view['premium']
+        self.employer_name = dict_view['employer_name']
+        self.salary = Salary(dict_view)
+        self.area_name = dict_view['area_name']
+        self.published_at = dict_view['published_at']
+
+
+class DataSet:
+    #Класс для представления набора данных
+    file_name = ''
+    vacancies_objects = list()
+    def __init__(self, fileName, vacancies):
+        #Инициализирует объект DataSet, выполняет конвертацию для целочисленных полей.
+        self.file_name = fileName #Название файла
+        self.vacancies_objects = vacancies #Данные вакансий
+class InputConect:
+    def file_processing(self):
+        file_t1 = input('Введите название файла: ').replace('\n', '')
+
+        # пишем параметр фильтрации
+        # print('Введите параметр фильтрации:')
+        filter = input('Введите параметр фильтрации: ').replace('\n', '').split(': ')
+
+        # print('Введите параметр сортировки:')
+        sort_value = input('Введите параметр сортировки: ').replace('\n', '')
+
+        # print('Обратный порядок сортировки (Да / Нет):')
+        reverse = input('Обратный порядок сортировки (Да / Нет): ').replace('\n', '')
+
+        # индекс начала и конца
+        # print('Введите диапазон вывода:')
+        start, stop = get_numbers(input('Введите диапазон вывода: ').replace('\n', ''))
+
+        # print('Введите требуемые столбцы:')
+        # выводимые заголовки
+        titles = input('Введите требуемые столбцы: ').replace('\n', '').split(', ')
+        if (len(titles) > 1):
+            titles.insert(0, '№')
+        # file_nam,start,stop,titles = settings_reader(file_t1.split('\n'))
+        contains_filter = False
+        exists_sort = False
+        reverse_bool = False
+        if reverse == 'Да':
+            reverse_bool == True
+        for j in translate.values():
+            if j == sort_value:
+                exists_sort = True
+            if filter[0] == j:
+                contains_filter = True
+        if sort_value == '':
+            exists_sort = True
+        if exists_sort == False:
+            print('Параметр сортировки некорректен')
+        elif reverse != 'Да' and reverse != 'Нет' and reverse != '':
+            print('Порядок сортировки задан некорректно')
+        elif filter.__len__() == 1 and filter[0] != '':
+            print('Формат ввода некорректен')
+        elif contains_filter == False and filter[0] != '' and filter[0] != 'Идентификатор валюты оклада':
+            print('Параметр поиска некорректен')
+        else:
+            rows1, titles1 = csv_reader(file_t1)
+            if (rows1 == "Empty"):
+                print('Пустой файл')
+            elif (rows1 == "No data"):
+                print('Нет данных')
+            elif rows1 == 'File not found':
+                print('Файл не найден')
+            else:
+                print_vacancies(csv_filter(rows1, titles1), translate, start, stop, titles, filter, sort_value,
+                                reverse_bool)
+def get_numbers(line):
+    start = 0
+    stop = 0
+    numbers = line.split(' ')
+    if len(numbers) == 2:
+        if numbers[0] != '' and numbers[1] != '':
+            start = int(numbers[0])
+            stop = int(numbers[1])
+    if len(numbers) == 1:
+        if line != '':
+            start = int(numbers[0])
+    if start < 0:
+        start = 0
+    if stop < 0:
+        stop = 0
+    return start, stop
+
+def settings_reader(lines):
+    #Чтение заголовков
+    titles = []
+    start = 0
+    stop = 0
+    file = ''
+    if len(lines) == 3:
+        if lines[2].replace('\n', '') != '':
+            titles = lines[2].replace('\n', '').split(', ')
+    if len(lines) >= 2:
+        start, stop = get_numbers(lines[1].replace('\n', ''))
+    if (len(lines) >= 1):
+        file = lines[0].replace('\n', '')
+    return file, start, stop, titles
+
+def csv_reader(file_name: str):
+    #Чтение csv-файла
+    with open(file_name, 'r', encoding='utf-8-sig') as file:
+        lines = list(read_csv(file))
+        if (len(lines) == 0):
+            return "Empty", ''
+        if (len(lines) == 1):
+            return "No data", ''
+        titles = lines[0]
+        rows = [line for line in lines[1:]
+
+                if '' not in line and len(line) == len(titles)]
+        return rows, titles
+
+def text_cleaner(value):
+    #Чистка от HTML-тегов и лишних /n
+    result = sub(compile('<.*?>'), '', value)
+    if '\n' in result:
+        return [' '.join(i.split()) for i in result.split('\n')]
+    return ' '.join(result.split())
+
+def csv_filter(reader, list_name):
+    #Фильтрация
+    result = []
+    for line in range(len(reader)):
+        for elem in range(len(reader[line])):
+            reader[line][elem] = text_cleaner(reader[line][elem])
+        result.append(dict(zip(list_name, reader[line])))
+    return result
+
+def change(text):
+    if isinstance(text, list):
+        return ', '.join(text)
+    if translate.keys().__contains__(text):
+        return translate[text]
+    return text
+
+def convert_salary_tosort(x):
+    #подготовка данных для сортировки
+    min = float(x['salary_from']) * currency_to_rub[x['salary_currency']]
+    max = float(x['salary_to']) * currency_to_rub[x['salary_currency']]
+    avg = (min + max) / 2
+    return avg
+
+def convert_string_to_compare(x):
+    #Вспомогательная функция
+    print(x)
+
+def sorting_skills(x):
+    #Сортировка по навыкам
+    skills = x[rus_to_english_conversion["Навыки"]]
+    if type(skills) == str:
+        return 1
+    count = len(skills)
+    return count
+
+def experience_sort(x):
+    if x['experience_id'] == "noExperience":
+        return 0
+    if x['experience_id'] == "between1And3":
+        return 1
+    if x['experience_id'] == "between3And6":
+        return 2
+    if x['experience_id'] == "moreThan6":
+        return 3
+
+def print_vacancies(data_vacancies, dic_naming, first, last, titles, filter, sort_value, reverse_bool):
+    #Выведение вакансий, сортировка
+    columns_text = ['Название', 'Описание', 'Компания', 'Опыт работы', 'Премиум-вакансия', 'Название региона']
+    cnt = 1
+    table = PrettyTable()
+    table.field_names = ['№'].__add__(list(formatter(data_vacancies[0].copy()).keys()))
+    table.border = True
+    table.hrules = prettytable.ALL
+    table.align = "l"
+    table.max_width = 20
+    if sort_value == 'Дата публикации вакансии':
+        data_vacancies.sort(key=lambda x: (datetime.strptime(x["published_at"], "%Y-%m-%dT%H:%M:%S%z")),
+                            reverse=not reverse_bool)
+    if sort_value == 'Название региона':
+        data_vacancies.sort(key=lambda x: x[rus_to_english_conversion[sort_value]], reverse=not reverse_bool)
+    if sort_value == 'Опыт работы':
+        data_vacancies.sort(key=experience_sort, reverse=reverse_bool)
+    if sort_value == 'Оклад':
+        data_vacancies.sort(key=convert_salary_tosort, reverse=not reverse_bool)
+    if sort_value == 'Навыки':
+        data_vacancies.sort(key=sorting_skills, reverse=not reverse_bool)
+    if sort_value != 'Дата публикации вакансии' and sort_value != 'Навыки' and sort_value != 'Оклад' and sort_value != '' and sort_value != 'Опыт работы' and sort_value != 'Название региона':
+        data_vacancies.sort(key=lambda x: x[rus_to_english_conversion[sort_value]], reverse=reverse_bool)
+    for i in data_vacancies:
+        translated = formatter(i)
+        values = translated.values()
+        values = list(map(lambda x: trim_string(x), values))
+        row = [cnt].__add__(values)
+
+        if filter.__len__() == 2 and filter[0] == 'Идентификатор валюты оклада':
+            if translated["Оклад"].__contains__('Евро'):
+                table.add_row(row)
+                cnt += 1
+
+        if columns_text.__contains__(filter[0]):
+            if translated[filter[0]] == filter[1]:
+                table.add_row(row)
+                cnt += 1
+        if filter.__len__() == 2 and filter[0] == 'Оклад':
+            price = translated['Оклад'].split('(')
+            cost_name = price[1].split(')')[0]
+            price_cost = price[0].replace(' ', '').split('-')
+            min = float(price_cost[0])
+            max = float(price_cost[1])
+            cost = int(filter[1])
+            if cost >= min and cost <= max:
+                table.add_row(row)
+                cnt += 1
+        if filter.__len__() == 2 and filter[0] == 'Дата публикации вакансии':
+            if translated['Дата публикации вакансии'] == filter[1]:
+                table.add_row(row)
+                cnt += 1
+        if filter.__len__() == 2 and filter[0] == 'Навыки':
+            skills = set(translated['Навыки'].split('\n'))
+            skills_filter = set(filter[1].split(', '))
+            intersection = skills.intersection(skills_filter)
+            if skills_filter.__len__() == intersection.__len__():
+                table.add_row(row)
+                cnt += 1
+
+        if filter.__len__() == 1:
+            table.add_row(row)
+            cnt += 1
+
+    if (last == 0):
+        last = len(table.rows)
+    if (first > 0):
+        first = first - 1
+    if (last != len(table.rows)):
+        last = last - 1
+    if cnt == 1:
+        print('Ничего не найдено')
+    elif len(titles) > 1:
+        print(table.get_string(start=first, end=last, fields=titles))
+    else:
+        print(table.get_string(start=first, end=last))
+
+def trim_string(inp: str):
+    #Обрезка строк
+    if len(inp) > 100:
+        return inp[0:100] + '...'
+    return inp
+
+def formatter(row: dict):
+    #форматирование строк
+    formatted = {}
+    s_from = format(int(float((row['salary_from']))), ',d').replace(',', ' ')
+    s_to = format(int(float((row['salary_to']))), ',d').replace(',', ' ')
+    s_gross = tax_dict[row["salary_gross"]]
+    s_currency = translate[row["salary_currency"]]
+    salary = f"{s_from} - {s_to} ({s_currency}) ({s_gross})"
+    date = str(row["published_at"][0:10]).split('-')
+    date = f"{date[2]}.{date[1]}.{date[0]}"
+    row["salary_from"] = salary
+    row["published_at"] = date
+    decline_fields = ["salary_to", "salary_gross", "salary_currency"]
+    for i in row:
+        val = row.get(i)
+        if not decline_fields.__contains__(i):
+            if translate.__contains__(str(val)):
+                formatted.update({translate[i]: ' '.join(translate[str(val)].split())})
+            elif isinstance(val, list):
+                formatted.update({translate[i]: '\n'.join(val)})
+            else:
+                formatted.update({translate[i]: ' '.join(str(val).split())})
+    return formatted
+
+rus_to_english_conversion = {
+    "Название": "name",
+    "Описание": "description",
+    "Навыки": "key_skills",
+    "Опыт работы": "experience_id",
+    "Премиум-вакансия": "premium",
+    "Компания": "employer_name",
+    "Оклад": "salary",
+    "Название региона": "area_name",
+    "Дата публикации вакансии": "published_at",
+}
+tax_dict = {'False': 'С вычетом налогов', 'True': 'Без вычета налогов', 'FALSE': 'С вычетом налогов',
+            'TRUE': 'Без вычета налогов'}
+
+translate = {'name': 'Название', 'description': 'Описание', 'key_skills': 'Навыки',
+             'experience_id': 'Опыт работы',
+             'premium': 'Премиум-вакансия', 'employer_name': 'Компания', 'salary_from': 'Оклад',
+             'salary_to': 'Верхняя граница вилки оклада', 'salary_gross': 'Оклад указан до вычета налогов',
+             'salary_currency': 'Идентификатор валюты оклада', 'area_name': 'Название региона',
+             'published_at': 'Дата публикации вакансии', 'noExperience': 'Нет опыта',
+             'between1And3': 'От 1 года до 3 лет', 'between3And6': 'От 3 до 6 лет ', 'moreThan6': 'Более 6 лет',
+             'AZN': 'Манаты', 'BYR': 'Белорусские рубли', 'EUR': 'Евро', 'GEL': 'Грузинский лари',
+             'KGS': 'Киргизский сом', 'KZT': 'Тенге',
+             'RUR': 'Рубли', 'UAH': 'Гривны', 'USD': 'Доллары', 'UZS': 'Узбекский сум', 'True': 'Да',
+             'False': 'Нет'}
+currency_to_rub = {
+    "AZN": 35.68,
+    "BYR": 23.91,
+    "EUR": 59.90,
+    "GEL": 21.74,
+    "KGS": 0.76,
+    "KZT": 0.13,
+    "RUR": 1,
+    "UAH": 1.64,
+    "USD": 60.66,
+    "UZS": 0.0055,
+}
+inputConnect = InputConect()
+inputConnect.file_processing()
